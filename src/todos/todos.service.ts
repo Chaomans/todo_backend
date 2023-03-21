@@ -1,37 +1,36 @@
 import { ArgumentsHost, Injectable } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { TypeOrmCrudService } from "@nestjsx/crud-typeorm";
 import { CreateTodoDto } from "./dto/create-todo.dto";
 import { UpdateTodoDto } from "./dto/update-todo.dto";
 import { Todo } from "./entities/todo.entity";
+import { TodoConflit } from "./exceptions/todoConflict.exception";
+import { TodoNotFound } from "./exceptions/todoNotFound.exception";
 
 @Injectable()
-export class TodosService {
+export class TodosService extends TypeOrmCrudService<Todo> {
   private todos: Todo[] = [];
-  private TodoError = (code: number, message: string) => ({
-    code,
-    message
-  });
 
-  create({ title }: CreateTodoDto, url: string) {
-    const id = crypto.randomUUID();
-    const created: Todo = {
+  constructor(@InjectRepository(Todo) repo) {
+    super(repo);
+  }
+
+  async create({ title }: CreateTodoDto) {
+    const todo = await this.repo.save({
       title,
-      id,
-      order: this.todos.length + 1,
-      completed: false,
-      url: url + "todos/" + id
-    };
-    this.todos.push(created);
-    return created;
+      completed: false
+    });
+    return todo;
   }
 
   findAll() {
     return this.todos.map((todo) => todo);
   }
 
-  findOne(id: string) {
+  findOneTodo(id: string) {
     const todo = this.todos.find((todo) => todo.id === id);
     if (!todo) {
-      throw this.TodoError(404, "todo not found !");
+      throw new TodoNotFound("todo not found !");
     }
     return todo;
   }
@@ -47,10 +46,10 @@ export class TodosService {
 
   update(id: string, { title, completed, order }: UpdateTodoDto) {
     if (!this.todos.some((todo) => todo.id == id)) {
-      throw this.TodoError(404, "todo not found !");
+      throw new TodoNotFound("todo not found !");
     }
     if (order && this.todos.some((todo) => todo.order == order)) {
-      throw this.TodoError(409, "order value already exist");
+      throw new TodoConflit("order value already exist");
     }
     const newTodos = this.todos.map((todo) => {
       if (todo.id == id) {
@@ -69,7 +68,7 @@ export class TodosService {
   }
 
   remove(id: string) {
-    const removed = this.findOne(id);
+    const removed = this.findOneTodo(id);
     this.todos = this.todos
       .filter((todo) => todo.id !== id)
       .map((todo, index) => ({ ...todo, order: index + 1 }));

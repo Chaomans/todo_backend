@@ -11,8 +11,6 @@ describe("TodosController", () => {
     create: jest.fn()
   };
 
-  const req = jest;
-
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [TodosController],
@@ -28,6 +26,10 @@ describe("TodosController", () => {
   it("should be defined", () => {
     expect(controller).toBeDefined();
   });
+
+  // unit test = 'e2e' in doc
+  // override provider
+  // use mock
 
   //   it("Should create a todo", () => {
   //     expect(
